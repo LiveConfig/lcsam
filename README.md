@@ -12,7 +12,7 @@ We've searched a while for a tool to filter incoming mails through SpamAssassin 
 * allows [rejection at SMTP time](http://www.postfix.org/MILTER_README.html) (to avoid [backscatter](http://en.wikipedia.org/wiki/Backscatter_%28email%29))
 * no script language please (no additional runtime requirements)
 
-There are [numerous tools](http://wiki.apache.org/spamassassin/IntegratedInMta) available - however, none of these matched our requirements. Either they are written in Perl, they store their user configuration in MySQL, ot they don't even allow per-user thresholds.
+There are [numerous tools](http://wiki.apache.org/spamassassin/IntegratedInMta) available - however, none of these matched our requirements. Either they are written in Perl, they store their user configuration in MySQL, or they don't even allow per-user thresholds.
 
 ## What's cool about *lcsam*?
 

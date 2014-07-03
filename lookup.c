@@ -9,12 +9,15 @@
 /*lint -esym(534, pthread_mutex_lock, pthread_mutex_unlock, __db::close) / safely ignore return value */
 /*lint -sem(lookup_prefs, thread_protected) */
 
+#include <stdlib.h>
 #include <sys/types.h>
 #include <sys/stat.h>
 #include <fcntl.h>
 #include <string.h>
 #include <syslog.h>
 #include <pthread.h>
+#include <errno.h>
+#include <unistd.h>
 
 #ifdef BDB_H
 #include BDB_H
@@ -34,6 +37,12 @@ static pthread_mutex_t lcsam_db_mutex = PTHREAD_MUTEX_INITIALIZER;
 /* database environment handle */
 static DB *dbp = NULL;
 
+/* database filename */
+static char *db_filename = NULL;
+
+/* last modification of database file */
+static time_t db_mtime;
+
 /* ----------------------------------------------------------------------
  * open_db()
  * Open database file
@@ -42,6 +51,15 @@ static DB *dbp = NULL;
 static int open_db(struct lcsam_priv *priv, const char *filename) {
 	int ret;
 	DB *d;
+
+	if (db_filename != NULL && db_filename != filename) {
+		free(db_filename);
+		db_filename = strdup(filename);
+		if (db_filename == NULL) {
+			log_print(LOG_ERR, priv, "strdup(%s) failed: %s", filename, strerror(errno));
+			return(-1);
+		}
+	}
 
 	/* create environment */
 	if ((ret = db_create(&d, NULL, 0)) != 0) {
@@ -66,11 +84,24 @@ static int open_db(struct lcsam_priv *priv, const char *filename) {
 int lookup_prefs(struct lcsam_priv *priv, const char *addr, struct lookup_result *res) {
 	int ret;
 	DBT key, data;
+	struct stat st;
 
 	if (addr == NULL || addr[0] == '\0') return(-1);
 
 	/* acquire mutex */
 	pthread_mutex_lock(&lcsam_db_mutex);
+
+	if (stat(db_filename, &st) == -1) {
+		log_print(LOG_ERR, priv, "lcsam_lookup(%s): stat(%s) failed: '%s'", addr, db_filename, strerror(errno));
+		pthread_mutex_unlock(&lcsam_db_mutex);
+		return(-1);
+	}
+
+	if (dbp != NULL && db_mtime != st.st_mtime) {
+		/* database file was modified. close now and open again (below). */
+		(void)dbp->close(dbp, 0);
+		dbp = NULL;
+	}
 
 	if (dbp == NULL) {
 		/* open database */
@@ -78,6 +109,7 @@ int lookup_prefs(struct lcsam_priv *priv, const char *addr, struct lookup_result
 			pthread_mutex_unlock(&lcsam_db_mutex);
 			return(-1);
 		}
+		db_mtime = st.st_mtime;
 	}
 
 	/* unlock mutex */
@@ -136,6 +168,11 @@ void lookup_close(void) {
 	if (dbp != NULL) {
 		(void)dbp->close(dbp, 0);
 		dbp = NULL;
+	}
+
+	if (db_filename != NULL) {
+		free(db_filename);
+		db_filename = NULL;
 	}
 
 	/* unlock mutex */

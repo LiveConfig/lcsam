@@ -15,7 +15,12 @@
 #include <string.h>
 #include <syslog.h>
 #include <pthread.h>
+
+#ifdef BDB_H
+#include BDB_H
+#else
 #include <db.h>
+#endif
 
 #include "lcsam.h"
 #include "args.h"

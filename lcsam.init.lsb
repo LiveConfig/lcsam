@@ -1,0 +1,170 @@
+#!/bin/sh
+#  _    _          ___           __ _     (R)
+# | |  (_)_ _____ / __|___ _ _  / _(_)__ _
+# | |__| \ V / -_) (__/ _ \ ' \|  _| / _` |
+# |____|_|\_/\___|\___\___/_||_|_| |_\__, |
+#                                    |___/
+# Copyright (c) 2009-2014 Keppler IT GmbH.
+# ----------------------------------------------------------------------------
+# /etc/init.d/lcsam
+# Init script for LiveConfig SpamAssassin Milter (lcsam)
+# ----------------------------------------------------------------------------
+
+### BEGIN INIT INFO
+# Provides:          lcsam
+# Required-Start:    $local_fs $network $syslog
+# Required-Stop:     $local_fs $network $syslog
+# Default-Start:     2 3 4 5
+# Default-Stop:      0 1 6
+# Short-Description: Start the LiveConfig SpamAssassin Milter (lcsam)
+# Description:       Start the LiveConfig SpamAssassin Milter (lcsam)
+### END INIT INFO
+
+DAEMON=/usr/lib/liveconfig/lcsam
+NAME=lcsam
+DESC=lcsam
+PIDFILE=/var/run/lcsam.pid
+USER=spamd
+SOCKETOWNER=postfix
+COMMAND=$1
+
+# This init script is basically LSB compatible. Because various distributions
+# support different levels of LSB compatibility, some few (missing) functions
+# are substituted on demand (eg. log_daemon_msg())
+
+# only start if binary is available
+[ -x "$DAEMON" ] || exit 0
+
+# Use LSB if available
+if [ -f /lib/lsb/init-functions ]; then
+    . /lib/lsb/init-functions
+elif [ -f /etc/rc.d/init.d/functions ]; then
+    # use CentOS/RedHat functions
+    . /etc/rc.d/init.d/functions
+fi
+
+fn_exists() {
+    type "$1" 1>/dev/null 2>/dev/null
+}
+
+if ! fn_exists "log_daemon_msg"; then
+    # Define "log_daemon_msg"
+    log_daemon_msg() {
+        if [ -z "${1:-}" ]; then
+            return 1
+        fi
+        if [ -z "${2:-}" ]; then
+            echo -n "$1:"
+            return
+        fi
+        echo -n "$1: $2"
+    }
+fi
+
+if ! fn_exists "log_end_msg"; then
+    # Define "log_end_msg"
+    log_end_msg() {
+        # If no arguments were passed, return
+        [ -z "${1:-}" ] && return 1
+
+        if [ $1 -eq 0 ]; then
+            echo "."
+    elif [ $1 -eq 255 ]; then
+        echo "(warning)."
+        else
+            echo "failed!"
+        fi
+        return $1
+    }
+fi
+
+# ----------------------------------------------------------------------------
+# Start lcsam daemon
+# ----------------------------------------------------------------------------
+do_start()
+{
+    # Return
+    #   0 if daemon has been started
+    #   1 if daemon was already running
+    #   2 if daemon could not be started
+    if [ -x /sbin/start-stop-daemon ]; then
+        # use start-stop-daemon
+        /sbin/start-stop-daemon --start --quiet --pidfile "$PIDFILE" --exec "$DAEMON" -- -u $USER -U $SOCKETOWNER 1>/dev/null
+    elif [ -r "$PIDFILE" ]; then
+        if read pid < "$PIDFILE" && ps -p "$pid" > /dev/null 2>&1;
+        then 
+            return 1
+        else
+            rm "$PIDFILE"
+        fi
+    else
+        $DAEMON -u $USER -U $SOCKETOWNER
+    fi
+}
+
+# ----------------------------------------------------------------------------
+# Stop lcsam daemon
+# ----------------------------------------------------------------------------
+do_stop()
+{
+    if [ -x /sbin/start-stop-daemon ]; then
+        # use start-stop-daemon
+        /sbin/start-stop-daemon --stop --quiet --pidfile "$PIDFILE" --exec "$DAEMON" --oknodo --retry 30 --  -u $USER -U $SOCKETOWNER 1>/dev/null
+    elif [ -r "$PIDFILE" ]; then
+        read pid < "$PIDFILE" && ps -p "$pid" && kill "$pid"
+        rm "$PIDFILE"
+    else
+        killall $NAME
+    fi
+}
+
+RETVAL=0
+
+case "$COMMAND" in
+    start)
+        log_daemon_msg "Starting $DESC" $NAME
+        do_start
+        log_end_msg "$?"
+        ;;
+    stop)
+        log_daemon_msg "Stopping $DESC" $NAME
+        do_stop
+        log_end_msg "$?"
+        ;;
+    restart)
+        $0 stop
+        sleep 1
+        $0 start
+        ;;
+    status)
+        if fn_exists "status_of_proc"; then
+            # use LSB function status_of_proc()
+            if [ -e "$PIDFILE" ]; then
+                status_of_proc -p "$PIDFILE" "$DAEMON" $NAME && exit 0 || exit $?
+            else
+                echo "$NAME is not running"
+                exit 0
+            fi
+        elif fn_exists "status"; then
+            status -p "$PIDFILE" "$DAEMON" && exit 0 || exit $?
+        else
+            # IMPORTANT: pidofproc() only checks default location (/var/run/lcsam.pid)
+            pidofproc -p "$PIDFILE" "$DAEMON" >/dev/null
+            RETVAL=$?
+            case $RETVAL in
+                0)  echo "$NAME is running"
+                    ;;
+                *)  echo "$NAME is not running"
+                    ;;
+            esac
+            exit $RETVAL
+        fi
+        ;;
+    *)
+        echo "Usage: $NAME {start|stop|restart|status}" >&2
+        RETVAL=1
+        ;;
+esac
+exit $RETVAL
+
+# <EOF>-----------------------------------------------------------------------

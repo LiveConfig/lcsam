@@ -1,0 +1,31 @@
+#!/sbin/runscript
+#  _    _          ___           __ _     (R)
+# | |  (_)_ _____ / __|___ _ _  / _(_)__ _
+# | |__| \ V / -_) (__/ _ \ ' \|  _| / _` |
+# |____|_|\_/\___|\___\___/_||_|_| |_\__, |
+#                                    |___/
+# Copyright (c) 2009-2014 Keppler IT GmbH.
+# ----------------------------------------------------------------------------
+# /etc/init.d/lcsam
+# Init script for LiveConfig SpamAssassin Milter (lcsam) (Gentoo version)
+# ----------------------------------------------------------------------------
+
+NAME=lcsam
+DAEMON=/usr/lib/liveconfig/lcsam
+PIDFILE=/var/run/lcsam.pid
+USER=spamd
+SOCKETOWNER=postfix
+
+start() {
+	ebegin "Starting $NAME"
+		/sbin/start-stop-daemon --start --quiet --pidfile $PIDFILE --exec $DAEMON -- -u $USER -U $SOCKETOWNER 2>/dev/null
+	eend $?
+}
+
+stop() {
+	ebegin "Stopping $NAME"
+		/sbin/start-stop-daemon --stop --quiet --pidfile $PIDFILE --exec $DAEMON --retry 30 -- -u $USER -U $SOCKETOWNER 1>/dev/null 2>/dev/null
+	eend $?
+}
+
+# <EOF>-----------------------------------------------------------------------

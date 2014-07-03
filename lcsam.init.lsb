@@ -27,6 +27,7 @@ PIDFILE=/var/run/lcsam.pid
 USER=spamd
 SOCKETOWNER=postfix
 COMMAND=$1
+OPTIONS="-u $USER -U $SOCKETOWNER"
 
 # This init script is basically LSB compatible. Because various distributions
 # support different levels of LSB compatibility, some few (missing) functions
@@ -42,6 +43,13 @@ elif [ -f /etc/rc.d/init.d/functions ]; then
     # use CentOS/RedHat functions
     . /etc/rc.d/init.d/functions
 fi
+
+# Check if group "nogroup" is available.
+# If not, use "nobody".
+if ! getent group nogroup >/dev/null; then
+    OPTIONS="$OPTIONS -g nobody"
+fi
+
 
 fn_exists() {
     type "$1" 1>/dev/null 2>/dev/null
@@ -89,7 +97,7 @@ do_start()
     #   2 if daemon could not be started
     if [ -x /sbin/start-stop-daemon ]; then
         # use start-stop-daemon
-        /sbin/start-stop-daemon --start --quiet --pidfile "$PIDFILE" --exec "$DAEMON" -- -u $USER -U $SOCKETOWNER 1>/dev/null
+        /sbin/start-stop-daemon --start --quiet --pidfile "$PIDFILE" --exec "$DAEMON" -- $OPTIONS 1>/dev/null
     elif [ -r "$PIDFILE" ]; then
         if read pid < "$PIDFILE" && ps -p "$pid" > /dev/null 2>&1;
         then 
@@ -98,7 +106,7 @@ do_start()
             rm "$PIDFILE"
         fi
     else
-        $DAEMON -u $USER -U $SOCKETOWNER
+        $DAEMON $OPTIONS
     fi
 }
 
@@ -109,7 +117,7 @@ do_stop()
 {
     if [ -x /sbin/start-stop-daemon ]; then
         # use start-stop-daemon
-        /sbin/start-stop-daemon --stop --quiet --pidfile "$PIDFILE" --exec "$DAEMON" --oknodo --retry 30 --  -u $USER -U $SOCKETOWNER 1>/dev/null
+        /sbin/start-stop-daemon --stop --quiet --pidfile "$PIDFILE" --exec "$DAEMON" --oknodo --retry 30 -- $OPTIONS 1>/dev/null
     elif [ -r "$PIDFILE" ]; then
         read pid < "$PIDFILE" && ps -p "$pid" && kill "$pid"
         rm "$PIDFILE"

@@ -5,10 +5,30 @@
 #                                    |___/
 # lcsam - LiveConfig SpamAssassin Milter
 
+# Include common Makefile settings if existing...
+ifeq (../Makefile.common,$(wildcard ../Makefile.common))
+include ../Makefile.common
+CPPFLAGS += -DBDB_H=\"$(BDB_H)\"
+endif
+
 CFLAGS	= -g -Wall -Werror -O3
-LIBS	= /usr/lib/libdb.a /usr/lib/libmilter/libmilter.a -pthread
+LIBS	= -pthread
 LDFLAGS	= -L/usr/lib/libmilter
 OBJECTS	= args.o lcsam.o log.o lookup.o pid.o safety.o
+
+# Berkeley DB
+ifdef LIB_BDB
+LIBS   += $(LIB_BDB)
+else
+LIBS   += -ldb
+endif
+
+# Milter
+ifdef LIB_MILTER
+LIBS   += $(LIB_MILTER)
+else
+LIBS   += -lmilter
+endif
 
 all: lcsam
 
@@ -36,7 +56,7 @@ clean:
 tests: test_lcsam
 
 test_lcsam: test_lcsam.c args.o lookup.o log.o
-	$(CC) $(CFLAGS) $(CPPFLAGS) $(INCLUDES) -o $@ $^ -lcheck -ldb
+	$(CC) $(CFLAGS) $(CPPFLAGS) $(INCLUDES) -o $@ $^ $(LDFLAGS) $(LIBS) -lcheck
 
 lint:
 	gcclint $(OBJECTS:%.o=%.c)

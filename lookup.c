@@ -91,7 +91,7 @@ int lookup_prefs(struct lcsam_priv *priv, const char *addr, struct lookup_result
 	/* acquire mutex */
 	pthread_mutex_lock(&lcsam_db_mutex);
 
-	if (stat(db_filename, &st) == -1) {
+	if (db_filename != NULL && stat(db_filename, &st) == -1) {
 		log_print(LOG_ERR, priv, "lcsam_lookup(%s): stat(%s) failed: '%s'", addr, db_filename, strerror(errno));
 		pthread_mutex_unlock(&lcsam_db_mutex);
 		return(-1);

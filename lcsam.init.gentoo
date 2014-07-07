@@ -13,18 +13,18 @@
 NAME=lcsam
 DAEMON=/usr/lib/liveconfig/lcsam
 PIDFILE=/var/run/lcsam.pid
-USER=spamd
+GROUP=spamd
 SOCKETOWNER=postfix
 
 start() {
 	ebegin "Starting $NAME"
-		/sbin/start-stop-daemon --start --quiet --pidfile $PIDFILE --exec $DAEMON -- -u $USER -U $SOCKETOWNER 2>/dev/null
+		/sbin/start-stop-daemon --start --quiet --pidfile $PIDFILE --exec $DAEMON -- -g $GROUP -U $SOCKETOWNER 2>/dev/null
 	eend $?
 }
 
 stop() {
 	ebegin "Stopping $NAME"
-		/sbin/start-stop-daemon --stop --quiet --pidfile $PIDFILE --exec $DAEMON --retry 30 -- -u $USER -U $SOCKETOWNER 1>/dev/null 2>/dev/null
+		/sbin/start-stop-daemon --stop --quiet --pidfile $PIDFILE --exec $DAEMON --retry 30 -- -g $GROUP -U $SOCKETOWNER 1>/dev/null 2>/dev/null
 	eend $?
 }
 

@@ -24,10 +24,10 @@ DAEMON=/usr/lib/liveconfig/lcsam
 NAME=lcsam
 DESC=lcsam
 PIDFILE=/var/run/lcsam.pid
-USER=spamd
+GROUP=spamd
 SOCKETOWNER=postfix
 COMMAND=$1
-OPTIONS="-u $USER -U $SOCKETOWNER"
+OPTIONS="-g $GROUP -U $SOCKETOWNER"
 
 # This init script is basically LSB compatible. Because various distributions
 # support different levels of LSB compatibility, some few (missing) functions
@@ -43,13 +43,6 @@ elif [ -f /etc/rc.d/init.d/functions ]; then
     # use CentOS/RedHat functions
     . /etc/rc.d/init.d/functions
 fi
-
-# Check if group "nogroup" is available.
-# If not, use "nobody".
-if ! getent group nogroup >/dev/null; then
-    OPTIONS="$OPTIONS -g nobody"
-fi
-
 
 fn_exists() {
     type "$1" 1>/dev/null 2>/dev/null

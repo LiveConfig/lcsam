@@ -425,7 +425,7 @@ static sfsistat lcsam_envrcpt(SMFICTX *ctx, char **args) {
 }
 
 /* ----------------------------------------------------------------------
- * lcsam_abort()
+ * lcsam_header()
  * Callback function - called for each message header
  * API: https://www.milter.org/developers/api/xxfi_header
  * ---------------------------------------------------------------------- */

@@ -67,7 +67,7 @@ static int open_db(struct lcsam_priv *priv, const char *filename) {
 		return(-1);
 	}
 
-	if ((ret = d->open(d, NULL, filename, NULL, DB_UNKNOWN, DB_RDONLY, 0)) != 0) {
+	if ((ret = d->open(d, NULL, filename, NULL, DB_UNKNOWN, DB_RDONLY | DB_THREAD, 0)) != 0) {
 		log_print(LOG_ERR, priv, "db_open(%s): %s", filename, db_strerror(ret));
 		d->close(d, 0);
 		return(-1);

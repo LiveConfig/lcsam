@@ -85,13 +85,14 @@ int lookup_prefs(struct lcsam_priv *priv, const char *addr, struct lookup_result
 	int ret;
 	DBT key, data;
 	struct stat st;
+	char databuf[512];
 
-	if (addr == NULL || addr[0] == '\0') return(-1);
+	if (addr == NULL || addr[0] == '\0' || db_filename == NULL) return(-1);
 
 	/* acquire mutex */
 	pthread_mutex_lock(&lcsam_db_mutex);
 
-	if (db_filename != NULL && stat(db_filename, &st) == -1) {
+	if (stat(db_filename, &st) == -1) {
 		log_print(LOG_ERR, priv, "lcsam_lookup(%s): stat(%s) failed: '%s'", addr, db_filename, strerror(errno));
 		pthread_mutex_unlock(&lcsam_db_mutex);
 		return(-1);
@@ -119,6 +120,9 @@ int lookup_prefs(struct lcsam_priv *priv, const char *addr, struct lookup_result
 	memset(&data, 0, sizeof(data));
 	key.data = (char*)addr;
 	key.size = (unsigned int)strlen(addr)+1;
+	data.flags = DB_DBT_USERMEM;
+	data.data = (char*)databuf;
+	data.ulen = sizeof(databuf);
 
 	ret = dbp->get(dbp, NULL, &key, &data, 0);
 	if (ret == 0) {
@@ -146,6 +150,10 @@ int lookup_prefs(struct lcsam_priv *priv, const char *addr, struct lookup_result
 	} else if (ret == DB_NOTFOUND) {
 		/* not found... */
 		log_print(LOG_DEBUG, priv, "lcsam_lookup(%s): not found", addr);
+		return(-1);
+	} else if (ret == DB_BUFFER_SMALL) {
+		/* not found... */
+		log_print(LOG_DEBUG, priv, "lcsam_lookup(%s): result buffer too small, %u bytes required", addr, data.size);
 		return(-1);
 	} else {
 		/* any other error */

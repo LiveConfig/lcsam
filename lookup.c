@@ -37,9 +37,6 @@ static pthread_mutex_t lcsam_db_mutex = PTHREAD_MUTEX_INITIALIZER;
 /* database environment handle */
 static DB *dbp = NULL;
 
-/* database filename */
-static char *db_filename = NULL;
-
 /* last modification of database file */
 static time_t db_mtime;
 
@@ -51,15 +48,6 @@ static time_t db_mtime;
 static int open_db(struct lcsam_priv *priv, const char *filename) {
 	int ret;
 	DB *d;
-
-	if (db_filename != NULL && db_filename != filename) {
-		free(db_filename);
-		db_filename = strdup(filename);
-		if (db_filename == NULL) {
-			log_print(LOG_ERR, priv, "strdup(%s) failed: %s", filename, strerror(errno));
-			return(-1);
-		}
-	}
 
 	/* create environment */
 	if ((ret = db_create(&d, NULL, 0)) != 0) {
@@ -87,13 +75,13 @@ int lookup_prefs(struct lcsam_priv *priv, const char *addr, struct lookup_result
 	struct stat st;
 	char databuf[512];
 
-	if (addr == NULL || addr[0] == '\0' || db_filename == NULL) return(-1);
+	if (addr == NULL || addr[0] == '\0') return(-1);
 
 	/* acquire mutex */
 	pthread_mutex_lock(&lcsam_db_mutex);
 
-	if (stat(db_filename, &st) == -1) {
-		log_print(LOG_ERR, priv, "lcsam_lookup(%s): stat(%s) failed: '%s'", addr, db_filename, strerror(errno));
+	if (stat(args_usermap, &st) == -1) {
+		log_print(LOG_ERR, priv, "lcsam_lookup(%s): stat(%s) failed: '%s'", addr, args_usermap, strerror(errno));
 		pthread_mutex_unlock(&lcsam_db_mutex);
 		return(-1);
 	}
@@ -105,7 +93,7 @@ int lookup_prefs(struct lcsam_priv *priv, const char *addr, struct lookup_result
 	}
 
 	if (dbp == NULL) {
-		/* open database */
+		/* (re-)open database */
 		if (open_db(priv, args_usermap) != 0) {
 			pthread_mutex_unlock(&lcsam_db_mutex);
 			return(-1);
@@ -176,11 +164,6 @@ void lookup_close(void) {
 	if (dbp != NULL) {
 		(void)dbp->close(dbp, 0);
 		dbp = NULL;
-	}
-
-	if (db_filename != NULL) {
-		free(db_filename);
-		db_filename = NULL;
 	}
 
 	/* unlock mutex */

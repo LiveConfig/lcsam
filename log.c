@@ -24,6 +24,9 @@ void log_print(int priority, struct lcsam_priv *priv, const char *fmt, ...) {
 	va_list ap;
 	char msg[4096];
 
+	/* discard all LOG_DEBUG messages unless we're running in debug mode */
+	if (priority >= LOG_DEBUG && !args_debug) return;
+
 	va_start(ap, fmt);
 	if (priv != NULL) {
 		snprintf(msg, sizeof(msg), "%s: ", priv->hostaddr);

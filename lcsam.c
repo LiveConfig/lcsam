@@ -599,7 +599,7 @@ static void spamd_reply(const char *line, struct lcsam_priv *priv, sfsistat *act
 					*action = SMFIS_ACCEPT;
 					break;
 				}
-				priv->spam = score >= priv->reject ? 1 : 0;
+				priv->spam = score >= priv->warn ? 1 : 0;
 				priv->score = score;
 				priv->state = 2;
 			}
@@ -712,7 +712,7 @@ DONE:
 	}
 	/* either way, we don't want to continue */
 	if (action == SMFIS_CONTINUE)
-		action = priv->spam ? SMFIS_REJECT : SMFIS_ACCEPT;
+		action = priv->score >= priv->reject ? SMFIS_REJECT : SMFIS_ACCEPT;
 	log_print(action == SMFIS_REJECT ? LOG_NOTICE : LOG_INFO, priv,
 	    "%s (%s %.1f/%.1f/%.1f%s%s), From: %s, To: %s, Subject: %s",
 	    (action == SMFIS_REJECT ? "REJECT" : "ACCEPT"),

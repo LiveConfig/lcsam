@@ -53,6 +53,8 @@ clean:
 	rm -f $(OBJECTS) lcsam test_lcsam
 	chmod a-x *.c *.h Makefile
 
+distclean: clean
+
 tests: test_lcsam
 
 test_lcsam: test_lcsam.c args.o lookup.o log.o

@@ -606,7 +606,7 @@ static void spamd_reply(const char *line, struct lcsam_priv *priv, sfsistat *act
 			break;
 		case 2:
 			/* wait for "end-of-header" separator */
-			if (line[0] != '\0') priv->state = 3;
+			if (line[0] == '\0') priv->state = 3;
 			break;
 		case 3:
 			/* parse content; here: list of matched SpamAssassin rules */

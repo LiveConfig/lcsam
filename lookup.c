@@ -112,44 +112,53 @@ int lookup_prefs(struct lcsam_priv *priv, const char *addr, struct lookup_result
 	data.data = (char*)databuf;
 	data.ulen = sizeof(databuf);
 
-	ret = dbp->get(dbp, NULL, &key, &data, 0);
-	if (ret == 0) {
-		/* found key */
-		/* expected response: "Version Warn Reject Action UserID SubjectPrefix" */
-		if (res != NULL) {
-			unsigned int version;
-			int parsed;
-			char *subj;
-			ret = sscanf(data.data, "%u %f %f %d %64s %n",
-					&version, &res->warn_score, &res->reject_score, &res->action,
-					res->userid, &parsed);
-			if (ret != 5 && ret != 6) {
-				log_print(LOG_ERR, priv, "lcsam_lookup(%s): unexpected result: '%s' (ret=%i)", addr, (char*)data.data, ret);
-				return(-1);
+	for (;;) {
+		ret = dbp->get(dbp, NULL, &key, &data, 0);
+		if (ret == 0) {
+			/* found key */
+			/* expected response: "Version Warn Reject Action UserID SubjectPrefix" */
+			if (res != NULL) {
+				unsigned int version;
+				int parsed;
+				char *subj;
+				ret = sscanf(data.data, "%u %f %f %d %64s %n",
+						&version, &res->warn_score, &res->reject_score, &res->action,
+						res->userid, &parsed);
+				if (ret != 5 && ret != 6) {
+					log_print(LOG_ERR, priv, "lcsam_lookup(%s): unexpected result: '%s' (ret=%i)", addr, (char*)data.data, ret);
+					return(-1);
+				}
+				if (version != 1) {
+					log_print(LOG_ERR, priv, "lcsam_lookup(%s): unsupported record version %u", addr, version);
+					return(-1);
+				}
+				subj = (char*)data.data + parsed;
+				strncpy(res->subjectprefix, subj, sizeof(res->subjectprefix));
+				res->subjectprefix[sizeof(res->subjectprefix)-1] = '\0';
 			}
-			if (version != 1) {
-				log_print(LOG_ERR, priv, "lcsam_lookup(%s): unsupported record version %u", addr, version);
-				return(-1);
+			return(0);
+		} else if (ret == DB_NOTFOUND) {
+			/* not found... */
+			log_print(LOG_DEBUG, priv, "lcsam_lookup(%s): not found", addr);
+			if (key.data != NULL && ((char*)key.data)[0] != '@') {
+				/* search for catch-all address: */
+				key.data = (char*)strchr(addr, '@');
+				if (key.data == NULL) return(-1);
+				key.size = (unsigned int)strlen(key.data)+1;
+				continue;
 			}
-			subj = (char*)data.data + parsed;
-			strncpy(res->subjectprefix, subj, sizeof(res->subjectprefix));
-			res->subjectprefix[sizeof(res->subjectprefix)-1] = '\0';
+			return(-1);
+		} else if (ret == DB_BUFFER_SMALL) {
+			/* not found... */
+			log_print(LOG_DEBUG, priv, "lcsam_lookup(%s): result buffer too small, %u bytes required", addr, data.size);
+			return(-1);
+		} else {
+			/* any other error */
+			log_print(LOG_ERR, priv, "lcsam_lookup(%s): %s", addr, db_strerror(ret));
+			return(-1);
 		}
-	} else if (ret == DB_NOTFOUND) {
-		/* not found... */
-		log_print(LOG_DEBUG, priv, "lcsam_lookup(%s): not found", addr);
-		return(-1);
-	} else if (ret == DB_BUFFER_SMALL) {
-		/* not found... */
-		log_print(LOG_DEBUG, priv, "lcsam_lookup(%s): result buffer too small, %u bytes required", addr, data.size);
-		return(-1);
-	} else {
-		/* any other error */
-		log_print(LOG_ERR, priv, "lcsam_lookup(%s): %s", addr, db_strerror(ret));
-		return(-1);
 	}
 
-	return(0);
 }
 
 /* ----------------------------------------------------------------------

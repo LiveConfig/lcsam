@@ -51,9 +51,9 @@ lcsam: $(OBJECTS)
 
 clean:
 	rm -f $(OBJECTS) lcsam test_lcsam
-	chmod a-x *.c *.h Makefile
 
 distclean: clean
+	chmod a-x *.c *.h lcsam.1 lcsam.1.pod Makefile README.md
 
 tests: test_lcsam
 

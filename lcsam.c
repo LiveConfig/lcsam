@@ -59,6 +59,8 @@
 #include "pid.h"
 #include "safety.h"
 
+static const char LCSAM_VERSION[] = "2016-10-19";
+
 #define RCODE_REJECT	"554"
 #define XCODE_REJECT	"5.7.1"
 #define MSG_REJECT		"Your message was rejected because it appears to be spam"
@@ -78,6 +80,8 @@ static void print_help(void) {
 		"--------------------------------------\n"
 		"lcsam - LiveConfig SpamAssassin Milter\n"
 		"--------------------------------------\n"
+		"Source: https://github.com/LiveConfig/lcsam\n"
+		"Version: %s\n"
 		"Usage: lcsam [options...]\n"
 		"\n"
 		"  -a             also scan (outgoing) mails from SASL authenticated users\n"
@@ -100,7 +104,8 @@ static void print_help(void) {
 		"  -g GROUP       group to run lcsam as (default: nogroup)\n"
 		"  -U USER        owner (user) of the UNIX domain socket (default: mail)\n"
 		"  -G GROUP       owner (group) of the UNIX domain socket (default: mail)\n"
-		"\n"
+		"\n",
+		LCSAM_VERSION
 		);
 }
 

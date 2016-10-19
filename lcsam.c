@@ -14,6 +14,7 @@
 
 /* PC-Lint options */
 /*lint -efile(451, stdarg.h, time.h) / no include guard present */
+/*lint -esym(459, args_scan_auth) / "unprotected access" from lcsam_envfrom() */
 /*lint -esym(526,__builtin_va_start) */
 /*lint -emacro(530, va_start) / do not init first parameter */
 /*lint -esym(534,snprintf, vsnprintf, smfi_setpriv, umask) / safely ignore return value */
@@ -79,6 +80,7 @@ static void print_help(void) {
 		"--------------------------------------\n"
 		"Usage: lcsam [options...]\n"
 		"\n"
+		"  -a             also scan (outgoing) mails from SASL authenticated users\n"
 		"  -c PROTO:ADDR  communication socket for incoming connections:\n"
 		"                   {unix|local}:/path/to/file       -- a named pipe\n"
 		"                   inet:port@{hostname|ip-address}  -- an IPv4 socket\n"
@@ -370,6 +372,19 @@ static sfsistat lcsam_envfrom(SMFICTX *ctx, char **args) {
 	priv->score = priv->warn = priv->reject = 0;
 	priv->spam = priv->state = 0;
 	priv->mbox_path[0] = priv->subjectprefix[0] = priv->rules[0] = '\0';
+
+	if (args_scan_auth == 0) {
+		/* check if we have an authenticated mail user: */
+		const char *str = smfi_getsymval(ctx, "{auth_authen}");
+		if (str != NULL && *str != '\0') {
+			/* accept mail without scanning */
+			log_print(LOG_DEBUG, priv, "lcsam_envfrom('%s'): bypass spam check for authenticated user '%s'",
+				args != NULL && args[0] != NULL ? args[0] : "(?)",
+				str
+				);
+			return(SMFIS_ACCEPT);
+		}
+	}
 
 	return (SMFIS_CONTINUE);
 }

@@ -20,6 +20,9 @@
 /* flag to set debug mode (run in foreground, show debug messages to STDOUT) */
 int args_debug = 0;
 
+/* also scan (outgoing) mails from SASL authenticated users */
+int args_scan_auth = 0;
+
 /* name of unix pipe or address of socket to accept incoming connections at */
 const char *args_commsocket = "unix:/var/run/lcsam.sock";
 
@@ -51,8 +54,11 @@ const char *args_sock_group = "mail";
 args_t args_parse(int argc, char* const* argv) {
 	int c;
 
-	while ((c = getopt(argc, argv, "c:dg:G:hm:p:s:u:U:")) != -1) {
+	while ((c = getopt(argc, argv, "ac:dg:G:hm:p:s:u:U:")) != -1) {
 		switch(c) {
+			case 'a':
+				args_scan_auth = 1;
+				break;
 			case 'c':
 				args_commsocket = optarg;
 				break;

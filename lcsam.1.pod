@@ -25,6 +25,10 @@ I<lcsam> accepts the following options:
 
 =over 4
 
+=item B<-a>
+
+Also scan (outgoing) mails from SASL authenticated users
+
 =item B<-c> F<PROTO:ADDR>
 
 Communication socket for incoming connections:

@@ -54,6 +54,10 @@ Location of the user map file (default value: F</etc/postfix/spamassassin.db>)
 
 Location of the PID file (default value: F</var/run/lcsam.pid>)
 
+=item B<-r>
+
+Add F<X-Spam-Report:> header containing detailed informations about all rules hit
+
 =item B<-s> F<ADDRESS>
 
 Address of SpamAssassin spamd to connect to. This can be either an ip address/hostname & port or a UNIX domain socket (default value: F</var/run/spamd.sock>)

@@ -10,8 +10,6 @@
 #define __LCSAM_H
 
 struct lcsam_priv {
-	//char		buf[2048];
-	//unsigned	pos;
 	char		hostname[128];
 	char		hostaddr[64];
 	char		*helo;
@@ -26,7 +24,8 @@ struct lcsam_priv {
 	int			spam;				/* flag if this is a spam mail and should be rejected */
 	char		subjectprefix[128];	/* subject prefix to be inserted when score >= warn */
 	float		score, warn, reject;	/* actual score and warn/reject thresholds */
-	char		rules[256];			/* list of matched rules (up to 255 bytes) */
+	char		*report;			/* SpamAssassin report (REPORT) or list of matched symbols (SYMBOLS) */
+	size_t		report_len;			/* size of report buffer */
 	int			state;
 };
 

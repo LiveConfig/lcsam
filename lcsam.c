@@ -96,6 +96,8 @@ static void print_help(void) {
 		"                 default value: \"/etc/postfix/spamassassin.db\"\n"
 		"  -p FILE        location of the PID file\n"
 		"                 default value: \"/var/run/lcsam.pid\"\n"
+		"  -r             add \"X-Spam-Report:\" header containing detailed\n"
+		"                 informations about all rules hit\n"
 		"  -s ADDRESS     address of SpamAssassin spamd to connect to\n"
 		"                 this can be either an ip address/hostname & port\n"
 		"                 or a UNIX domain socket\n"
@@ -156,7 +158,7 @@ static void fdprintf(struct lcsam_priv *priv, const char *fmt, ...) {
 			/* glibc 2.0 */
 			newsz = priv->sendbufsize * 2;
 		}
-		tmpbuf = realloc(priv->sendbuf, newsz);
+		tmpbuf = (char*)realloc(priv->sendbuf, newsz);
 		if (tmpbuf == NULL) {
 			log_print(LOG_ERR, priv, "realloc(%zi) failed: %s", newsz, strerror(errno));
 			return;
@@ -376,7 +378,12 @@ static sfsistat lcsam_envfrom(SMFICTX *ctx, char **args) {
 	if (priv->fd >= 0)				{ close(priv->fd); priv->fd = -1; }
 	priv->score = priv->warn = priv->reject = 0;
 	priv->spam = priv->state = 0;
-	priv->mbox_path[0] = priv->subjectprefix[0] = priv->rules[0] = '\0';
+	priv->mbox_path[0] = priv->subjectprefix[0] = '\0';
+	if (priv->report != NULL) {
+		free(priv->report);
+		priv->report = NULL;
+		priv->report_len = 0;
+	}
 
 	if (args_scan_auth == 0) {
 		/* check if we have an authenticated mail user: */
@@ -472,7 +479,11 @@ static sfsistat lcsam_header(SMFICTX *ctx, char *name, char *value) {
 		}
 
 		/* send protocol header */
-		fdprintf(priv, "SYMBOLS SPAMC/1.2\r\n");
+		if (args_report) {
+			fdprintf(priv, "REPORT SPAMC/1.2\r\n");
+		} else {
+			fdprintf(priv, "SYMBOLS SPAMC/1.2\r\n");
+		}
 
 		if (priv->mbox_path[0] != '\0') {
 			fdprintf(priv, "User: %s\r\n", priv->mbox_path);
@@ -587,6 +598,7 @@ static sfsistat lcsam_body(SMFICTX *ctx, u_char *chunk, size_t size) {
  * ---------------------------------------------------------------------- */
 static void spamd_reply(const char *line, struct lcsam_priv *priv, sfsistat *action) {
 	const char *p;
+	size_t len;
 
 	switch (priv->state) {
 		case 0:
@@ -605,7 +617,6 @@ static void spamd_reply(const char *line, struct lcsam_priv *priv, sfsistat *act
 				break;
 			}
 			priv->state = 1;
-			priv->rules[0] = '\0';
 			break;
 		case 1:
 			/* parse response header line(s) */
@@ -629,9 +640,29 @@ static void spamd_reply(const char *line, struct lcsam_priv *priv, sfsistat *act
 			if (line[0] == '\0') priv->state = 3;
 			break;
 		case 3:
-			/* parse content; here: list of matched SpamAssassin rules */
-			strncpy(priv->rules + strlen(priv->rules), line, sizeof(priv->rules) - strlen(priv->rules) - 1);
-			priv->rules[sizeof(priv->rules)-1] = '\0';
+			/* parse content; here: SpamAssassin report OR list of matched SpamAssassin rules */
+			if (line == NULL) break;
+			if (priv->report_len == 0 || priv->report_len - strlen(priv->report) - 1 < strlen(line)) {
+				/* allocate/grow report buffer */
+				size_t sz = priv->report_len + 1024;
+				char *tmp = (char*)realloc(priv->report, sz);
+				if (tmp == NULL) {
+					/* out of memory! */
+					log_print(LOG_ERR, priv, "spamd_reply: out of memory while reallocating %zi bytes", sz);
+					*action = SMFIS_ACCEPT;
+					break;
+				}
+				memset(tmp + priv->report_len, 0, 1024UL);	/* clear new memory */
+				priv->report = tmp;
+				priv->report_len = sz;
+			}
+			len = strlen(priv->report);
+			if (*priv->report != '\0') {
+				/* add linebreak (for multi-line responses) */
+				strncpy(priv->report + len, "\r\n", priv->report_len - len - 1);
+				len+=2;
+			}
+			strncpy(priv->report + len, line, priv->report_len - len - 1);
 			break;
 		default:
 			log_print(LOG_ERR, priv, "spamd_reply: invalid parse state");
@@ -737,7 +768,7 @@ DONE:
 	    "%s (%s %.1f/%.1f/%.1f%s%s), From: %s, To: %s, Subject: %s",
 	    (action == SMFIS_REJECT ? "REJECT" : "ACCEPT"),
 	    (priv->spam ? "SPAM" : "ham"), priv->score, priv->reject, priv->warn,
-	    (priv->rules[0] ? " " :  ""), priv->rules,
+	    (args_report == 0 && priv->report != NULL ? " " :  ""), (args_report == 0 && priv->report != NULL ? priv->report : ""),
 	    priv->hdr_from, priv->hdr_to, priv->hdr_subject);
 	if (action == SMFIS_REJECT) {
 		if (smfi_setreply(ctx, RCODE_REJECT, XCODE_REJECT, MSG_REJECT) != MI_SUCCESS) {
@@ -758,10 +789,54 @@ DONE:
 		}
 
 		/* add "X-Spam-Status:" header */
-		snprintf(m, sizeof(m), "%s score=%.1f tagged_above=%.1f required=%.1f tests=[%s]",
-			priv->spam ? "Yes" : "No", priv->score, priv->warn, priv->reject, priv->rules);
+		if (args_report) {
+			/* no symbols available, we have a full report below */
+			snprintf(m, sizeof(m), "%s score=%.1f tagged_above=%.1f required=%.1f",
+				priv->spam ? "Yes" : "No", priv->score, priv->warn, priv->reject);
+		} else {
+			snprintf(m, sizeof(m), "%s score=%.1f tagged_above=%.1f required=%.1f tests=[%s]",
+				priv->spam ? "Yes" : "No", priv->score, priv->warn, priv->reject, priv->report);
+		}
 		if (smfi_chgheader(ctx, "X-Spam-Status", 1, m) != MI_SUCCESS) {
 			log_print(LOG_ERR, priv, "lcsam_eom: smfi_chgheader(X-Spam-Status)");
+		}
+
+		if (args_report && priv->report != NULL) {
+			/* add "X-Spam-Report:" header */
+			char *readpos, *writepos, *cr;
+			size_t space_left = sizeof(buf);
+			size_t line_length;
+
+			readpos = priv->report;
+			writepos = buf;
+			for (;;) {
+				cr = strchr(readpos, '\n');
+				if (cr == NULL) cr = readpos + strlen(readpos);
+				line_length = cr - readpos;
+				if (line_length == 0) break;
+				if (*cr == '\n' && cr > readpos && *(cr-1) == '\r') line_length--;
+				if (writepos > buf) {
+					/* fold line */
+					memcpy(writepos, "\r\n\t", 3);
+					writepos+=3;
+					space_left-=3;
+				}
+				if (space_left <= line_length) {
+					line_length = space_left - 1;
+				}
+				memcpy(writepos, readpos, line_length);
+				writepos += line_length;
+				space_left -= line_length;
+				readpos = cr + 1;
+				if (space_left == 1 || *cr == '\0') {
+					*writepos = '\0';
+					break;
+				}
+			}
+
+			if (smfi_chgheader(ctx, "X-Spam-Report", 1, buf) != MI_SUCCESS) {
+				log_print(LOG_ERR, priv, "lcsam_eom: smfi_chgheader(X-Spam-Report)");
+			}
 		}
 
 		/* eventually modify subject */
@@ -818,6 +893,7 @@ static sfsistat lcsam_abort(SMFICTX *ctx) {
 	if (priv->hdr_subject != NULL)	safe_free(priv->hdr_subject, 0L);
 	if (priv->fd >= 0)				close(priv->fd);
 	if (priv->sendbuf != NULL)		safe_free(priv->sendbuf, priv->sendbufsize);
+	if (priv->report != NULL)		free(priv->report);
 	memset(priv, 0, sizeof(struct lcsam_priv));
 	priv->fd = -1;
 
@@ -844,6 +920,7 @@ static sfsistat lcsam_close(SMFICTX *ctx) {
 		if (priv->hdr_subject != NULL)	safe_free(priv->hdr_subject, 0L);
 		if (priv->fd >= 0)				close(priv->fd);
 		if (priv->sendbuf != NULL)		safe_free(priv->sendbuf, priv->sendbufsize);
+		if (priv->report != NULL)		free(priv->report);
 
 		memset(priv, 0, sizeof(struct lcsam_priv));
 		priv->fd = -1;

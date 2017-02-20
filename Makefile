@@ -9,6 +9,8 @@
 ifeq (../Makefile.common,$(wildcard ../Makefile.common))
 include ../Makefile.common
 CPPFLAGS += -DBDB_H=\"$(BDB_H)\"
+else
+CHECKLIB = -lcheck
 endif
 
 CFLAGS	= -g -Wall -Werror -O3
@@ -58,7 +60,7 @@ distclean: clean
 tests: test_lcsam
 
 test_lcsam: test_lcsam.c args.o lookup.o log.o
-	$(CC) $(CFLAGS) $(CPPFLAGS) $(INCLUDES) -o $@ $^ $(LDFLAGS) $(LIBS) -lcheck
+	$(CC) $(CFLAGS) $(CPPFLAGS) $(INCLUDES) -o $@ $^ $(LDFLAGS) $(LIBS) $(CHECKLIB) -lm -lrt
 
 lint:
 	gcclint $(OBJECTS:%.o=%.c)

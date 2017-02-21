@@ -813,11 +813,14 @@ DONE:
 				cr = strchr(readpos, '\n');
 				if (cr == NULL) cr = readpos + strlen(readpos);
 				line_length = cr - readpos;
-				if (line_length == 0) break;
+				if (line_length == 0) {
+					*writepos = '\0';
+					break;
+				}
 				if (*cr == '\n' && cr > readpos && *(cr-1) == '\r') line_length--;
 				if (writepos > buf) {
 					/* fold line */
-					memcpy(writepos, "\r\n\t", 3);
+					memcpy(writepos, "\r\n\t", 3UL);
 					writepos+=3;
 					space_left-=3;
 				}

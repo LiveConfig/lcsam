@@ -828,7 +828,7 @@ DONE:
 				cr = strchr(readpos, '\n');
 				if (cr == NULL) cr = readpos + strlen(readpos);
 				line_length = cr - readpos;
-				if (line_length == 0) {
+				if (line_length == 0 || space_left <= 4) {
 					*writepos = '\0';
 					break;
 				}
@@ -836,8 +836,8 @@ DONE:
 				if (writepos > buf) {
 					/* fold line */
 					memcpy(writepos, "\r\n\t", 3UL);
-					writepos+=3;
-					space_left-=3;
+					writepos += 3;
+					space_left -= 3;
 				}
 				if (space_left <= line_length) {
 					line_length = space_left - 1;
@@ -846,7 +846,7 @@ DONE:
 				writepos += line_length;
 				space_left -= line_length;
 				readpos = cr + 1;
-				if (space_left == 1 || *cr == '\0') {
+				if (*cr == '\0') {
 					*writepos = '\0';
 					break;
 				}

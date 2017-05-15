@@ -27,6 +27,7 @@ struct lcsam_priv {
 	char		*report;			/* SpamAssassin report (REPORT) or list of matched symbols (SYMBOLS) */
 	size_t		report_len;			/* size of report buffer */
 	int			state;
+	char		auth_sender;		/* "1" if sender is SASL-authenticated, else "0" */
 };
 
 #endif /* __LCSAM_H */

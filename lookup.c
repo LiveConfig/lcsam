@@ -68,6 +68,7 @@ static int open_db(struct lcsam_priv *priv, const char *filename) {
 /* ----------------------------------------------------------------------
  * lookup_prefs()
  * Lookup per-user preferences from database file
+ * \return 0=ok, -1=error, -2=not found
  * ---------------------------------------------------------------------- */
 int lookup_prefs(struct lcsam_priv *priv, const char *addr, struct lookup_result *res) {
 	int ret;
@@ -143,11 +144,11 @@ int lookup_prefs(struct lcsam_priv *priv, const char *addr, struct lookup_result
 			if (key.data != NULL && ((char*)key.data)[0] != '@') {
 				/* search for catch-all address: */
 				key.data = (char*)strchr(addr, '@');
-				if (key.data == NULL) return(-1);
+				if (key.data == NULL) return(-2);
 				key.size = (unsigned int)strlen(key.data)+1;
 				continue;
 			}
-			return(-1);
+			return(-2);
 		} else if (ret == DB_BUFFER_SMALL) {
 			/* not found... */
 			log_print(LOG_DEBUG, priv, "lcsam_lookup(%s): result buffer too small, %u bytes required", addr, data.size);

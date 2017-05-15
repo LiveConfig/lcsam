@@ -356,6 +356,7 @@ static sfsistat lcsam_helo(SMFICTX *ctx, char *helohost) {
  * ---------------------------------------------------------------------- */
 static sfsistat lcsam_envfrom(SMFICTX *ctx, char **args) {
 	struct lcsam_priv *priv;
+	const char *str;
 
 	if ((priv = (struct lcsam_priv *)smfi_getpriv(ctx)) == NULL) {
 		log_print(LOG_ERR, NULL, "lcsam_envfrom: smfi_getpriv");
@@ -385,10 +386,11 @@ static sfsistat lcsam_envfrom(SMFICTX *ctx, char **args) {
 		priv->report_len = 0;
 	}
 
-	if (args_scan_auth == 0) {
-		/* check if we have an authenticated mail user: */
-		const char *str = smfi_getsymval(ctx, "{auth_authen}");
-		if (str != NULL && *str != '\0') {
+	/* check if we have an authenticated mail user: */
+	str = smfi_getsymval(ctx, "{auth_authen}");
+	if (str != NULL && *str != '\0') {
+		priv->auth_sender = 1;
+		if (args_scan_auth == 0) {
 			/* accept mail without scanning */
 			log_print(LOG_DEBUG, priv, "lcsam_envfrom('%s'): bypass spam check for authenticated user '%s'",
 				args != NULL && args[0] != NULL ? args[0] : "(?)",
@@ -438,8 +440,21 @@ static sfsistat lcsam_envrcpt(SMFICTX *ctx, char **args) {
 
 		/* lookup individual spam thresholds */
 		ret = lookup_prefs(NULL, rcpt_addr, &lr);
-		if (ret != 0) {
-			/* error or not found (exact reason logged by lookup_prefs()) */
+		if (ret == -2) {
+			/* not found */
+			if (args_scan_auth == 0 || priv->auth_sender == 0) {
+				/* don't scan message (no preferences found, or outgoing e-mail) */
+				return(SMFIS_ACCEPT);
+			}
+
+			/* scan outgoing e-mail:
+			 * use some "high" settings - blocking should be done later using the appropriate headers */
+			priv->warn = 999;
+			priv->reject = 999;
+			priv->subjectprefix[0] = '\0';
+			return(SMFIS_CONTINUE);
+		} else if (ret != 0) {
+			/* error (exact reason logged by lookup_prefs()) */
 			return(SMFIS_ACCEPT);
 		}
 		priv->warn = lr.warn_score;

@@ -18,6 +18,7 @@ typedef enum {
 extern int args_debug;
 extern int args_scan_auth;
 extern int args_report;
+extern float args_scan_auth_score;
 extern const char *args_commsocket;
 extern const char *args_pidfile;
 extern const char *args_spamdsocket;

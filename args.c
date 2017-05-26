@@ -11,6 +11,9 @@
 /*lint -esym(459, args_debug, args_commsocket, args_spamdsocket) */
 
 #include <stdio.h>
+#include <stdlib.h>
+#include <errno.h>
+#include <limits.h>
 #include <ctype.h>
 #include <unistd.h>
 #include <string.h>
@@ -22,6 +25,9 @@ int args_debug = 0;
 
 /* also scan (outgoing) mails from SASL authenticated users */
 int args_scan_auth = 0;
+
+/* reject score for (outgoing) mails from SASL authenticated users */
+float args_scan_auth_score = 999.0f;
 
 /* add "X-Spam-Report:" header */
 int args_report = 0;
@@ -56,11 +62,23 @@ const char *args_sock_group = "mail";
  * ---------------------------------------------------------------------- */
 args_t args_parse(int argc, char* const* argv) {
 	int c;
+	float temp;
+	char *end = NULL;
 
-	while ((c = getopt(argc, argv, "ac:dg:G:hm:p:rs:u:U:")) != -1) {
+	while ((c = getopt(argc, argv, "aA:c:dg:G:hm:p:rs:u:U:")) != -1) {
 		switch(c) {
 			case 'a':
 				args_scan_auth = 1;
+				break;
+			case 'A':
+				temp = strtof(optarg, &end);
+				/* check if there was an valid float in optarg */
+				if (end != optarg && errno != ERANGE && temp >= -1000.0f && temp <= 1000.0f) {
+					args_scan_auth_score = temp;
+				} else {
+					fprintf(stderr, "Option '-A' requires a float value between -1000.0 and 1000.0.\n");
+					return(ARGS_ERROR);
+				}
 				break;
 			case 'c':
 				args_commsocket = optarg;

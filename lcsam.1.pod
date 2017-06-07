@@ -29,6 +29,10 @@ I<lcsam> accepts the following options:
 
 Also scan (outgoing) mails from SASL authenticated users
 
+=item B<-A> F<SCORE>
+
+Reject outgoing mails exceeding this SpamAssassin score (float value, must be between -1000.0 and 1000.0). A reasonable value might be around 3.0-5.0 points, depending on your SpamAssassin settings.
+
 =item B<-c> F<PROTO:ADDR>
 
 Communication socket for incoming connections:

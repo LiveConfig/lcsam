@@ -85,6 +85,7 @@ static void print_help(void) {
 		"Usage: lcsam [options...]\n"
 		"\n"
 		"  -a             also scan (outgoing) mails from SASL authenticated users\n"
+		"  -A SCORE       reject outgoing mails exceeding this SpamAssassin score\n"
 		"  -c PROTO:ADDR  communication socket for incoming connections:\n"
 		"                   {unix|local}:/path/to/file       -- a named pipe\n"
 		"                   inet:port@{hostname|ip-address}  -- an IPv4 socket\n"

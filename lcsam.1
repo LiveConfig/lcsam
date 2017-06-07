@@ -133,7 +133,7 @@
 .\" ========================================================================
 .\"
 .IX Title "LCSAM.1 1"
-.TH LCSAM.1 1 "2017-02-20" "perl v5.20.2" "LiveConfig Utilities"
+.TH LCSAM.1 1 "2017-06-07" "perl v5.20.2" "LiveConfig Utilities"
 .\" For nroff, turn off justification.  Always turn off hyphenation; it makes
 .\" way too many mistakes in technical documents.
 .if n .ad l
@@ -152,6 +152,9 @@ lcsam \- LiveConfig SpamAssassin Milter
 .IP "\fB\-a\fR" 4
 .IX Item "-a"
 Also scan (outgoing) mails from \s-1SASL\s0 authenticated users
+.IP "\fB\-A\fR \fI\s-1SCORE\s0\fR" 4
+.IX Item "-A SCORE"
+Reject outgoing mails exceeding this SpamAssassin score (float value, must be between \-1000.0 and 1000.0). A reasonable value might be around 3.0\-5.0 points, depending on your SpamAssassin settings.
 .IP "\fB\-c\fR \fI\s-1PROTO:ADDR\s0\fR" 4
 .IX Item "-c PROTO:ADDR"
 Communication socket for incoming connections:

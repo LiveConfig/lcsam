@@ -449,8 +449,8 @@ static sfsistat lcsam_envrcpt(SMFICTX *ctx, char **args) {
 
 			/* scan outgoing e-mail:
 			 * use some "high" settings - blocking should be done later using the appropriate headers */
-			priv->warn = 999;
-			priv->reject = 999;
+			priv->warn = args_scan_auth_score;
+			priv->reject = args_scan_auth_score;
 			priv->subjectprefix[0] = '\0';
 			return(SMFIS_CONTINUE);
 		} else if (ret != 0) {
@@ -503,9 +503,9 @@ static sfsistat lcsam_header(SMFICTX *ctx, char *name, char *value) {
 		if (priv->mbox_path[0] != '\0') {
 			fdprintf(priv, "User: %s\r\n", priv->mbox_path);
 		}
-	
+
 		fdprintf(priv, "\r\n");
-	
+
 		/* send fake Received: header */
 		fdprintf(priv, "Received: from %s (%s [%s])",
 		    priv->helo, priv->hostname, priv->hostaddr);

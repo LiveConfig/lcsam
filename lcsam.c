@@ -59,7 +59,7 @@
 #include "pid.h"
 #include "safety.h"
 
-static const char LCSAM_VERSION[] = "2016-10-19";
+static const char LCSAM_VERSION[] = "2017-06-07";
 
 #define RCODE_REJECT	"554"
 #define XCODE_REJECT	"5.7.1"

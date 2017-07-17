@@ -13,7 +13,7 @@ struct lookup_result {
 	float	warn_score;
 	float	reject_score;
 	int		action;
-	char	userid[64];
+	char	userid[65];
 	char	subjectprefix[128];
 };
 

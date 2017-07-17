@@ -18,7 +18,7 @@ struct lcsam_priv {
 	char		*hdr_to;
 	char		*hdr_subject;
 	int			fd;					/* file handle to SpamAssassin (-1 when closed or not initialized) */
-	char		mbox_path[16];		/* part of path to user mailbox (eg. "1/23" for "/var/mail/%u/spamassassin") */
+	char		username[65];		/* part of path to user preferences (eg. "web100_23" for "/var/lib/spamassassin/%u/") */
 	char		*sendbuf;
 	size_t		sendbufsize;
 	int			spam;				/* flag if this is a spam mail and should be rejected */

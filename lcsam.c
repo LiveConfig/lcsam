@@ -380,7 +380,7 @@ static sfsistat lcsam_envfrom(SMFICTX *ctx, char **args) {
 	if (priv->fd >= 0)				{ close(priv->fd); priv->fd = -1; }
 	priv->score = priv->warn = priv->reject = 0;
 	priv->spam = priv->state = 0;
-	priv->mbox_path[0] = priv->subjectprefix[0] = '\0';
+	priv->username[0] = priv->subjectprefix[0] = '\0';
 	if (priv->report != NULL) {
 		free(priv->report);
 		priv->report = NULL;
@@ -462,6 +462,8 @@ static sfsistat lcsam_envrcpt(SMFICTX *ctx, char **args) {
 		priv->reject = lr.reject_score;
 		strncpy(priv->subjectprefix, lr.subjectprefix, sizeof(priv->subjectprefix)-1);
 		priv->subjectprefix[sizeof(priv->subjectprefix)-1] = '\0';
+		strncpy(priv->username, lr.userid, sizeof(priv->username)-1);
+		priv->username[sizeof(priv->username)-1] = '\0';
 	}
 
 	return (SMFIS_CONTINUE);
@@ -501,8 +503,8 @@ static sfsistat lcsam_header(SMFICTX *ctx, char *name, char *value) {
 			fdprintf(priv, "SYMBOLS SPAMC/1.2\r\n");
 		}
 
-		if (priv->mbox_path[0] != '\0') {
-			fdprintf(priv, "User: %s\r\n", priv->mbox_path);
+		if (priv->username[0] != '\0') {
+			fdprintf(priv, "User: %s\r\n", priv->username);
 		}
 
 		fdprintf(priv, "\r\n");

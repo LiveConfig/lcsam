@@ -13,9 +13,9 @@ else
 CHECKLIB = -lcheck
 endif
 
-CFLAGS	= -g -Wall -Werror -O3
+CFLAGS	= -g -Wall -Werror -O3 -fstack-protector --param ssp-buffer-size=4 -fPIE -pie -D_FORTIFY_SOURCE=2
 LIBS	= -pthread
-LDFLAGS	= -L/usr/lib/libmilter
+LDFLAGS	= -L/usr/lib/libmilter -Wl,-z,relro,-z,now -pie
 OBJECTS	= args.o lcsam.o log.o lookup.o pid.o safety.o
 
 # Berkeley DB

@@ -16,6 +16,7 @@
 #include <syslog.h>
 #include <errno.h>
 #include <string.h>
+#include <signal.h>
 
 #include "lcsam.h"
 #include "log.h"
@@ -192,13 +193,29 @@ int pid_update(void) {
 		return(-1);
 	}
 
+	if (getpid() != __pid_opened) {
+		/* send SIGALRM to parent process, this waits until we have written the PID */
+		kill(__pid_opened, SIGALRM);
+	}
+
 	return(0);
+}
+
+/* ----------------------------------------------------------------------
+ * close and release exclusive lock from PID file (without deleting it)
+ * ---------------------------------------------------------------------- */
+void pid_close(void) {
+	if (__pid_fd < 0) return;
+
+	/* close file (also releases lock) */
+	close(__pid_fd);
+	__pid_fd = -1;
 }
 
 /* ----------------------------------------------------------------------
  * remove PID file
  * ---------------------------------------------------------------------- */
-void pid_release(const char *filename) {
+void pid_remove(const char *filename) {
 	if (__pid_fd < 0) return;
 
 	/* unlink PID file */

@@ -34,6 +34,7 @@
 #include <stdlib.h>
 #include <stdio.h>
 #include <unistd.h>
+#include <signal.h>
 #include <stdarg.h>
 #include <string.h>
 #include <sysexits.h>
@@ -262,6 +263,14 @@ static int get_spamd_fd(struct lcsam_priv *priv) {
 	}
 
 	return (fd);
+}
+
+/* ----------------------------------------------------------------------
+ * sigalrm_handler()
+ * Dummy handler for SIGALRM signal (during daemon startup)
+ * ---------------------------------------------------------------------- */
+static void sigalrm_handler(int s) {
+	/* do nothing here... */
 }
 
 /* ----------------------------------------------------------------------
@@ -1051,10 +1060,43 @@ int main(int argc, char* const* argv) {
 
 	if (args_debug == 0) {
 		/* fork into background */
-		if (daemon(0, 0) == -1) {
+
+		void (*sigalrm_orig)(int);
+		int i;
+
+		/* systemd reads the PID file as soon as the parent process is terminated.
+		 * But we write the "real" PID of the daemon process after fork(), so we force the parent
+		 * process to wait some time (and wake it up with SIGALRM once the daemon is ready)
+		 *
+		 * The signal handler for SIGALRM must be installed *before* fork().
+		 * Otherwise if the child process is "faster" sending a SIGALRM than the parent installing a handler,
+		 * the process would die.
+		 */
+		sigalrm_orig = signal(SIGALRM, sigalrm_handler);
+		if (sigalrm_orig == SIG_ERR) {
+			log_print(LOG_ERR, NULL, "signal() failed: %s", strerror(errno));
+			/* continue anyway... */
+		}
+
+		i = fork();
+
+		if (i < 0) {
+			/* fork() failed */
 			log_print(LOG_ERR, NULL, "can't fork into background: %s", strerror(errno));
 			goto CLEANUP;
+		} else if (i > 0) {
+			/* parent process */
+			pid_close();
+
+			/* sleep up to 5 seconds. Parent process will send us an SIGALRM once the PID file has been updated, so we can quit cleanly. */
+			sleep(5);
+
+			exit(EX_OK);
 		}
+
+		/* restore original SIGALRM handler in child process */
+		signal(SIGALRM, sigalrm_orig);
+
 		if (pid_update() != 0) {
 			/* error while updating PID file - better abort... */
 			goto CLEANUP;
@@ -1081,7 +1123,7 @@ CLEANUP:
 		(void)safety_user_restore();
 	}
 
-	pid_release(args_pidfile);
+	pid_remove(args_pidfile);
 
 	closelog();
 

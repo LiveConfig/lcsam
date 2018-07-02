@@ -11,6 +11,7 @@
 
 int pid_create(const char *filename);
 int pid_update(void);
-void pid_release(const char *filename);
+void pid_close(void);
+void pid_remove(const char *filename);
 
 #endif /* __LCSAM_PID_H */

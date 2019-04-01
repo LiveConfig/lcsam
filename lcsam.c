@@ -60,7 +60,7 @@
 #include "pid.h"
 #include "safety.h"
 
-static const char LCSAM_VERSION[] = "2017-06-07";
+static const char LCSAM_VERSION[] = "2019-04-01";
 
 #define RCODE_REJECT	"554"
 #define XCODE_REJECT	"5.7.1"
@@ -669,9 +669,11 @@ static void spamd_reply(const char *line, struct lcsam_priv *priv, sfsistat *act
 		case 3:
 			/* parse content; here: SpamAssassin report OR list of matched SpamAssassin rules */
 			if (line == NULL) break;
-			if (priv->report_len == 0 || priv->report_len - strlen(priv->report) - 1 < strlen(line)) {
+			if (priv->report_len == 0 || priv->report_len - strlen(priv->report) - 3 < strlen(line)) {	/* plus 3 bytes: \r\n and \0 */
 				/* allocate/grow report buffer */
-				size_t sz = priv->report_len + 1024;
+				size_t grow = strlen(line)+3;
+				if (grow < 1024) grow = 1024;
+				size_t sz = priv->report_len + grow;
 				char *tmp = (char*)realloc(priv->report, sz);
 				if (tmp == NULL) {
 					/* out of memory! */
@@ -679,7 +681,7 @@ static void spamd_reply(const char *line, struct lcsam_priv *priv, sfsistat *act
 					*action = SMFIS_ACCEPT;
 					break;
 				}
-				memset(tmp + priv->report_len, 0, 1024UL);	/* clear new memory */
+				memset(tmp + priv->report_len, 0, grow);	/* clear new memory */
 				priv->report = tmp;
 				priv->report_len = sz;
 			}

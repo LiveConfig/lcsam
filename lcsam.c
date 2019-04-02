@@ -60,7 +60,7 @@
 #include "pid.h"
 #include "safety.h"
 
-static const char LCSAM_VERSION[] = "2019-04-01";
+static const char LCSAM_VERSION[] = "2019-04-02";
 
 #define RCODE_REJECT	"554"
 #define XCODE_REJECT	"5.7.1"
@@ -625,7 +625,7 @@ static sfsistat lcsam_body(SMFICTX *ctx, u_char *chunk, size_t size) {
  * ---------------------------------------------------------------------- */
 static void spamd_reply(const char *line, struct lcsam_priv *priv, sfsistat *action) {
 	const char *p;
-	size_t len;
+	size_t len, line_len;
 
 	switch (priv->state) {
 		case 0:
@@ -669,9 +669,10 @@ static void spamd_reply(const char *line, struct lcsam_priv *priv, sfsistat *act
 		case 3:
 			/* parse content; here: SpamAssassin report OR list of matched SpamAssassin rules */
 			if (line == NULL) break;
-			if (priv->report_len == 0 || priv->report_len - strlen(priv->report) - 3 < strlen(line)) {	/* plus 3 bytes: \r\n and \0 */
+			line_len = strlen(line);
+			if ((priv->report_len == 0) || priv->report_len - strlen(priv->report) < line_len + 3) {	/* plus 3 bytes: \r\n and \0 */
 				/* allocate/grow report buffer */
-				size_t grow = strlen(line)+3;
+				size_t grow = line_len + 3;
 				if (grow < 1024) grow = 1024;
 				size_t sz = priv->report_len + grow;
 				char *tmp = (char*)realloc(priv->report, sz);
@@ -688,10 +689,11 @@ static void spamd_reply(const char *line, struct lcsam_priv *priv, sfsistat *act
 			len = strlen(priv->report);
 			if (*priv->report != '\0') {
 				/* add linebreak (for multi-line responses) */
-				strncpy(priv->report + len, "\r\n", priv->report_len - len - 1);
+				memcpy(priv->report + len, "\r\n\0", 3);
 				len+=2;
 			}
-			strncpy(priv->report + len, line, priv->report_len - len - 1);
+			memcpy(priv->report + len, line, line_len);
+			priv->report[len+line_len] = '\0';	/* add terminating \0 */
 			break;
 		default:
 			log_print(LOG_ERR, priv, "spamd_reply: invalid parse state");

@@ -159,6 +159,6 @@ postmap(1).
 
 =head1 AUTHOR
 
-Keppler IT GmbH E<lt>F<info@liveconfig.com>E<gt>
+LiveConfig GmbH E<lt>F<info@liveconfig.com>E<gt>
 
 =cut

@@ -52,6 +52,7 @@
 #include <pwd.h>
 #include <grp.h>
 #include <ctype.h>
+#include <paths.h>
 
 #include "lcsam.h"
 #include "args.h"
@@ -1101,10 +1102,34 @@ int main(int argc, char* const* argv) {
 		/* restore original SIGALRM handler in child process */
 		signal(SIGALRM, sigalrm_orig);
 
+		/* become session leader */
+		setsid();
+
+		/* change working directory */
+		if (chdir("/") != 0) {
+			log_print(LOG_WARNING, NULL, "chdir(/) failed: %s", strerror(errno));
+		}
+
+		/* now fork again */
+		if (fork() > 0) {
+			/* parent process */
+			exit(EX_OK);
+		}
+
 		if (pid_update() != 0) {
 			/* error while updating PID file - better abort... */
 			goto CLEANUP;
 		}
+
+		/* try to re-open STDIN, STDOUT and STDERR with /dev/null */
+		i = open(_PATH_DEVNULL, O_WRONLY | O_APPEND | O_CREAT, 0644);
+		if (i >= 0) {
+			dup2(i, STDIN_FILENO);
+			dup2(i, STDOUT_FILENO);
+			dup2(i, STDERR_FILENO);
+			close(i);
+		}
+
 	}
 
 	/* main loop */

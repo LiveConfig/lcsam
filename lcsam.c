@@ -316,7 +316,7 @@ static sfsistat lcsam_connect(SMFICTX *ctx, char *hostname, _SOCK_ADDR *hostaddr
 			case AF_INET6: {
 				/*lint -e(740,826) */
 				struct sockaddr_in6 *sin6 = (struct sockaddr_in6 *)hostaddr;
-				if (inet_ntop(AF_INET, &sin6->sin6_addr, priv->hostaddr, (unsigned int)sizeof(priv->hostaddr)-1) == NULL) {
+				if (inet_ntop(AF_INET6, &sin6->sin6_addr, priv->hostaddr, (unsigned int)sizeof(priv->hostaddr)-1) == NULL) {
 					log_print(LOG_ERR, NULL, "lcsam_connect: inet_ntop: %s", strerror(errno));
 				}
 				break;

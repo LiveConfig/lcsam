@@ -384,6 +384,7 @@ static sfsistat lcsam_envfrom(SMFICTX *ctx, char **args) {
 	 * within one connection) */
 	if (priv->env_rcpt != NULL)		{ safe_free(priv->env_rcpt, 0L); priv->env_rcpt = NULL; }
 	if (priv->hdr_from != NULL)		{ safe_free(priv->hdr_from, 0L); priv->hdr_from = NULL; }
+	if (priv->hdr_messageid != NULL)		{ safe_free(priv->hdr_messageid, 0L); priv->hdr_messageid = NULL; }
 	if (priv->hdr_to != NULL)		{ safe_free(priv->hdr_to, 0L); priv->hdr_to = NULL; }
 	if (priv->hdr_subject != NULL)	{ safe_free(priv->hdr_subject, 0L); priv->hdr_subject = NULL; }
 	if (priv->sendbuf != NULL)		{ safe_free(priv->sendbuf, priv->sendbufsize); priv->sendbuf = NULL; priv->sendbufsize = 0; }
@@ -558,6 +559,9 @@ static sfsistat lcsam_header(SMFICTX *ctx, char *name, char *value) {
 	} else if (strcasecmp(name, "To") == 0) {
 		priv->hdr_to = strdup(value);
 		if (priv->hdr_to == NULL) goto TEMPFAIL;
+	} else if (strcasecmp(name, "Message-ID") == 0) {
+		priv->hdr_messageid = strdup(value);
+		if (priv->hdr_messageid == NULL) goto TEMPFAIL;
 	} else if (strcasecmp(name, "Subject") == 0) {
 		priv->hdr_subject = strdup(value);
 		if (priv->hdr_subject == NULL) goto TEMPFAIL;
@@ -797,11 +801,11 @@ DONE:
 	if (action == SMFIS_CONTINUE)
 		action = priv->score >= priv->reject ? SMFIS_REJECT : SMFIS_ACCEPT;
 	log_print(action == SMFIS_REJECT ? LOG_NOTICE : LOG_INFO, priv,
-	    "%s (%s %.1f/%.1f/%.1f%s%s), From: %s, To: %s, Subject: %s",
+	    "%s (%s %.1f/%.1f/%.1f%s%s), From: %s, To: %s, MessageID: %s, Subject: %s",
 	    (action == SMFIS_REJECT ? "REJECT" : "ACCEPT"),
 	    (priv->spam ? "SPAM" : "ham"), priv->score, priv->reject, priv->warn,
 	    (args_report == 0 && priv->report != NULL ? " " :  ""), (args_report == 0 && priv->report != NULL ? priv->report : ""),
-	    priv->hdr_from, priv->hdr_to, priv->hdr_subject);
+	    priv->hdr_from, priv->hdr_to, priv->hdr_messageid, priv->hdr_subject);
 	if (action == SMFIS_REJECT) {
 		if (smfi_setreply(ctx, RCODE_REJECT, XCODE_REJECT, MSG_REJECT) != MI_SUCCESS) {
 			log_print(LOG_ERR, priv, "lcsam_eom: smfi_setreply");
@@ -923,6 +927,7 @@ static sfsistat lcsam_abort(SMFICTX *ctx) {
 
 	if (priv->helo != NULL)			safe_free(priv->helo, 0L);
 	if (priv->env_rcpt != NULL)		safe_free(priv->env_rcpt, 0L);
+	if (priv->hdr_messageid != NULL)		safe_free(priv->hdr_messageid, 0L);
 	if (priv->hdr_from != NULL)		safe_free(priv->hdr_from, 0L);
 	if (priv->hdr_to != NULL)		safe_free(priv->hdr_to, 0L);
 	if (priv->hdr_subject != NULL)	safe_free(priv->hdr_subject, 0L);
@@ -950,6 +955,7 @@ static sfsistat lcsam_close(SMFICTX *ctx) {
 
 		if (priv->helo != NULL)			safe_free(priv->helo, 0L);
 		if (priv->env_rcpt != NULL)		safe_free(priv->env_rcpt, 0L);
+		if (priv->hdr_messageid != NULL)		safe_free(priv->hdr_messageid, 0L);
 		if (priv->hdr_from != NULL)		safe_free(priv->hdr_from, 0L);
 		if (priv->hdr_to != NULL)		safe_free(priv->hdr_to, 0L);
 		if (priv->hdr_subject != NULL)	safe_free(priv->hdr_subject, 0L);

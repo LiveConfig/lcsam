@@ -16,6 +16,7 @@ struct lcsam_priv {
 	char		*env_rcpt;
 	char		*hdr_from;
 	char		*hdr_to;
+	char		*hdr_messageid;
 	char		*hdr_subject;
 	int			fd;					/* file handle to SpamAssassin (-1 when closed or not initialized) */
 	char		username[65];		/* part of path to user preferences (eg. "web100_23" for "/var/lib/spamassassin/%u/") */

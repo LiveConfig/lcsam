@@ -374,14 +374,9 @@ static sfsistat lcsam_envfrom(SMFICTX *ctx, char **args) {
 		return(SMFIS_ACCEPT);
 	}
 
-	if (args != NULL && args[0] != NULL) {
-		/* just log the sender name for debugging purposes,
-		 * don't do anything more here. */
-		log_print(LOG_DEBUG, priv, "lcsam_envfrom('%s')", args[0]);
-	}
-
 	/* reset most fields of private data (when delivering multiple messages
 	 * within one connection) */
+	if (priv->env_from != NULL)		{ safe_free(priv->env_from, 0L); priv->env_from = NULL; }
 	if (priv->env_rcpt != NULL)		{ safe_free(priv->env_rcpt, 0L); priv->env_rcpt = NULL; }
 	if (priv->hdr_from != NULL)		{ safe_free(priv->hdr_from, 0L); priv->hdr_from = NULL; }
 	if (priv->hdr_messageid != NULL)		{ safe_free(priv->hdr_messageid, 0L); priv->hdr_messageid = NULL; }
@@ -396,6 +391,11 @@ static sfsistat lcsam_envfrom(SMFICTX *ctx, char **args) {
 		free(priv->report);
 		priv->report = NULL;
 		priv->report_len = 0;
+	}
+
+	if (args != NULL && args[0] != NULL) {
+		log_print(LOG_DEBUG, priv, "lcsam_envfrom('%s')", args[0]);
+		priv->env_from = strdup(args[0]);
 	}
 
 	/* check if we have an authenticated mail user: */
@@ -519,6 +519,11 @@ static sfsistat lcsam_header(SMFICTX *ctx, char *name, char *value) {
 		}
 
 		fdprintf(priv, "\r\n");
+
+		if (priv->env_from != NULL) {
+			/* send Envelope-From */
+			fdprintf(priv, "Return-Path: %s\r\n", priv->env_from);
+		}
 
 		/* send fake Received: header */
 		fdprintf(priv, "Received: from %s (%s [%s])",
@@ -926,6 +931,7 @@ static sfsistat lcsam_abort(SMFICTX *ctx) {
 	log_print(LOG_DEBUG, priv, "lcsam_abort()");
 
 	if (priv->helo != NULL)			safe_free(priv->helo, 0L);
+	if (priv->env_from != NULL)		safe_free(priv->env_from, 0L);
 	if (priv->env_rcpt != NULL)		safe_free(priv->env_rcpt, 0L);
 	if (priv->hdr_messageid != NULL)		safe_free(priv->hdr_messageid, 0L);
 	if (priv->hdr_from != NULL)		safe_free(priv->hdr_from, 0L);
@@ -954,6 +960,7 @@ static sfsistat lcsam_close(SMFICTX *ctx) {
 		smfi_setpriv(ctx, NULL);
 
 		if (priv->helo != NULL)			safe_free(priv->helo, 0L);
+		if (priv->env_from != NULL)		safe_free(priv->env_from, 0L);
 		if (priv->env_rcpt != NULL)		safe_free(priv->env_rcpt, 0L);
 		if (priv->hdr_messageid != NULL)		safe_free(priv->hdr_messageid, 0L);
 		if (priv->hdr_from != NULL)		safe_free(priv->hdr_from, 0L);

@@ -13,6 +13,7 @@ struct lcsam_priv {
 	char		hostname[128];
 	char		hostaddr[64];
 	char		*helo;
+	char		*env_from;
 	char		*env_rcpt;
 	char		*hdr_from;
 	char		*hdr_to;

@@ -4,7 +4,7 @@
 # | |__| \ V / -_) (__/ _ \ ' \|  _| / _` |
 # |____|_|\_/\___|\___\___/_||_|_| |_\__, |
 #                                    |___/
-# Copyright (c) 2009-2014 Keppler IT GmbH.
+# Copyright (c) 2009-2021 LiveConfig GmbH.
 # ----------------------------------------------------------------------------
 # /etc/init.d/lcsam
 # Init script for LiveConfig SpamAssassin Milter (lcsam) (Gentoo version)
@@ -12,7 +12,7 @@
 
 NAME=lcsam
 DAEMON=/usr/lib/liveconfig/lcsam
-PIDFILE=/var/run/lcsam.pid
+PIDFILE=/run/lcsam.pid
 GROUP=spamd
 SOCKETOWNER=postfix
 

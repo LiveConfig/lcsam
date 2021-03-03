@@ -4,7 +4,7 @@
 # | |__| \ V / -_) (__/ _ \ ' \|  _| / _` |
 # |____|_|\_/\___|\___\___/_||_|_| |_\__, |
 #                                    |___/
-# Copyright (c) 2009-2014 Keppler IT GmbH.
+# Copyright (c) 2009-2021 LiveConfig GmbH.
 # ----------------------------------------------------------------------------
 # /etc/init.d/lcsam
 # Init script for LiveConfig SpamAssassin Milter (lcsam)
@@ -23,7 +23,7 @@
 DAEMON=/usr/lib/liveconfig/lcsam
 NAME=lcsam
 DESC=lcsam
-PIDFILE=/var/run/lcsam.pid
+PIDFILE=/run/lcsam.pid
 GROUP=spamd
 SOCKETOWNER=postfix
 COMMAND=$1
@@ -149,7 +149,7 @@ case "$COMMAND" in
         elif fn_exists "status"; then
             status -p "$PIDFILE" "$DAEMON" && exit 0 || exit $?
         else
-            # IMPORTANT: pidofproc() only checks default location (/var/run/lcsam.pid)
+            # IMPORTANT: pidofproc() only checks default location (/run/lcsam.pid)
             pidofproc -p "$PIDFILE" "$DAEMON" >/dev/null
             RETVAL=$?
             case $RETVAL in

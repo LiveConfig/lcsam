@@ -36,7 +36,7 @@ int args_report = 0;
 const char *args_commsocket = "unix:/var/run/lcsam.sock";
 
 /* location of PID file */
-const char *args_pidfile = "/var/run/lcsam.pid";
+const char *args_pidfile = "/run/lcsam.pid";
 
 /* address of SpamAssassin 'spamd' socket to connect to */
 const char *args_spamdsocket = "/var/run/spamd.sock";

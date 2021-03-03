@@ -56,7 +56,7 @@ Location of the user map file (default value: F</etc/postfix/spamassassin.db>)
 
 =item B<-p> F<FILE>
 
-Location of the PID file (default value: F</var/run/lcsam.pid>)
+Location of the PID file (default value: F</run/lcsam.pid>)
 
 =item B<-r>
 

@@ -98,7 +98,7 @@ static void print_help(void) {
 		"  -m FILE        location of the user map file\n"
 		"                 default value: \"/etc/postfix/spamassassin.db\"\n"
 		"  -p FILE        location of the PID file\n"
-		"                 default value: \"/var/run/lcsam.pid\"\n"
+		"                 default value: \"/run/lcsam.pid\"\n"
 		"  -r             add \"X-Spam-Report:\" header containing detailed\n"
 		"                 informations about all rules hit\n"
 		"  -s ADDRESS     address of SpamAssassin spamd to connect to\n"

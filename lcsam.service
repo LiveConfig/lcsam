@@ -6,7 +6,6 @@
 # Copyright (c) 2009-2016 Keppler IT GmbH.
 # ----------------------------------------------------------------------------
 # systemd unit file for LiveConfig SpamAssassin Milter (lcsam)
-# $Id: lcsam.service 4024 2016-01-04 12:55:56Z kk $
 # ----------------------------------------------------------------------------
 
 [Unit]
@@ -16,7 +15,7 @@ After=syslog.target network.target
 
 [Service]
 Type=forking
-PIDFile=/var/run/lcsam.pid
+PIDFile=/run/lcsam.pid
 ExecStart=/usr/lib/liveconfig/lcsam -g spamd -U postfix
 Restart=on-failure
 
